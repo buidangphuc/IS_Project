@@ -1,0 +1,17 @@
+artifacts_dir: artifacts
+raw_dir: artifacts/data_ingestion/movielens_raw
+lake_dir: artifacts/data_transformation/lake
+validation_dir: artifacts/data_validation
+trainer_dir: artifacts/model_trainer
+eval_dir: artifacts/model_evaluation
+
+kafka:
+  bootstrap: "broker-1:9092,broker-2:9092,broker-3:9092"
+  topic_ratings: "events.ratings.v1"
+
+redis:
+  host: "redis"
+  port: 6379
+
+blend:
+  realtime_weight: 0.35

@@ -1,0 +1,128 @@
+version: "3.9"
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  app:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile
+    depends_on:
+      - kafka
+      - redis
+    environment:
+      APP_CONFIG: "config/config.docker.yaml"
+    volumes:
+      - ..:/app
+    ports:
+      - "8000:8000"
+    command: bash -lc "uvicorn app:app --host 0.0.0.0 --port 8000"
+
+  stream-consumer:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile
+    depends_on:
+      - kafka
+      - redis
+    environment:
+      APP_CONFIG: "config/config.docker.yaml"
+    volumes:
+      - ..:/app
+    command: python scripts/consumer_entry.py
+    restart: unless-stopped
+
+  stream-producer:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile
+    depends_on:
+      - kafka
+      - redis
+    environment:
+      APP_CONFIG: "config/config.docker.yaml"
+    volumes:
+      - ..:/app
+    command: python scripts/producer_entry.py
+    restart: unless-stopped
+
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.6.0
+    depends_on:
+      - kafka
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: "kafka:9092"
+      SCHEMA_REGISTRY_LISTENERS: "http://0.0.0.0:8081"
+    ports:
+      - "8081:8081"
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    depends_on:
+      - kafka
+      - schema-registry
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      KAFKA_CLUSTERS_0_SCHEMAREGISTRY: http://schema-registry:8081
+
+  flink-jobmanager:
+    image: flink:1.18.1
+    ports:
+      - "8082:8081"   # Flink Web UI (mapped to 8082 host)
+      - "9249:9249"   # Prom metrics
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: flink-jobmanager
+        metrics.reporters: prom
+        metrics.reporter.prom.class: org.apache.flink.metrics.prometheus.PrometheusReporter
+        metrics.reporter.prom.port: 9249
+    command: jobmanager
+    depends_on:
+      - kafka
+
+  flink-taskmanager:
+    image: flink:1.18.1
+    ports:
+      - "9250:9250"
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: flink-jobmanager
+        taskmanager.numberOfTaskSlots: 2
+        metrics.reporters: prom
+        metrics.reporter.prom.class: org.apache.flink.metrics.prometheus.PrometheusReporter
+        metrics.reporter.prom.port: 9250
+    command: taskmanager
+    depends_on:
+      - flink-jobmanager

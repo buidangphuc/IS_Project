@@ -1,0 +1,10 @@
+fastapi>=0.110
+uvicorn[standard]>=0.30
+pandas>=2.2
+pyarrow>=15.0
+numpy>=1.26
+pyspark>=3.5
+faiss-cpu>=1.7.4
+redis>=5.0
+confluent-kafka>=2.4
+pyyaml>=6.0

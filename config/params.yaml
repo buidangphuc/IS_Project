@@ -1,0 +1,8 @@
+als:
+  rank: 64
+  max_iter: 12
+  reg_param: 0.05
+  implicit: false
+
+faiss:
+  nlist: 512

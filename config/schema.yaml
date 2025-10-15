@@ -1,0 +1,11 @@
+ratings:
+  columns:
+    userId: int64
+    movieId: int64
+    rating: float64
+    timestamp: int64
+movies:
+  columns:
+    movieId: int64
+    title: str
+    genres: str

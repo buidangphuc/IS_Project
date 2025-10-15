@@ -1,0 +1,27 @@
+version: "3.9"
+services:
+  offline-scheduler:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile
+    environment:
+      APP_CONFIG: "config/config.yaml"
+      RUN_AT: "02:00"           # run daily at HH:MM (container localtime)
+      INTERVAL_HOURS: "24"      # or set interval hours if RUN_AT not set
+    volumes:
+      - ..:/app
+    command: python scripts/daily_offline_runner.py
+    restart: unless-stopped
+
+  app:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile
+    environment:
+      APP_CONFIG: "config/config.yaml"
+    volumes:
+      - ..:/app
+    ports:
+      - "8000:8000"
+    command: bash -lc "uvicorn app:app --host 0.0.0.0 --port 8000"
+    restart: unless-stopped
