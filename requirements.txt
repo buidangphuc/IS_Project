@@ -8,3 +8,5 @@ faiss-cpu>=1.7.4
 redis>=5.0
 confluent-kafka>=2.4
 pyyaml>=6.0
+websockets>=12.0
+python-multipart>=0.0.6

@@ -1,23 +1,41 @@
 .PHONY: help kraft-up kraft-down status topics offline offline-local restart-app serve seed \
-        scale-consumer kill-broker start-broker logs-consumer logs-producer logs-app api-test show-artifacts
+        scale-consumer kill-broker start-broker logs-consumer logs-producer logs-app api-test show-artifacts \
+        demo demo-install demo-click demo-session demo-stream demo-stop
 
 DOCKER_COMPOSE_FILE ?= infra/docker-compose.kraft.yml
 DC := docker compose -f $(DOCKER_COMPOSE_FILE)
 
 help:
-	@echo "Targets:"
+	@echo "🎬 Movie Recommender Demo - Available Commands:"
+	@echo "=============================================="
+	@echo ""
+	@echo "🚀 DEMO COMMANDS:"
+	@echo "  make demo              # Start full Docker demo stack"
+	@echo "  make demo-quick        # Quick demo start (if stack running)"
+	@echo "  make demo-click USER_ID=1 GENRE=Action    # Generate single click"
+	@echo "  make demo-session USER_ID=1 GENRE=Comedy  # Simulate user session"
+	@echo "  make demo-stream DURATION=60              # Continuous event stream"
+	@echo "  make demo-api-test     # Test all API endpoints"
+	@echo "  make demo-status       # Check demo stack status"
+	@echo "  make demo-logs         # Follow app logs"
+	@echo ""
+	@echo "🏗️ INFRASTRUCTURE:"
 	@echo "  make kraft-up          # Up Kafka KRaft + Redis + App + Producer/Consumer + Kafka UI"
+	@echo "  make kraft-down        # Down & remove volumes"
 	@echo "  make status            # Show containers"
 	@echo "  make topics            # Create default topics (RF=3, partitions=12)"
+	@echo ""
+	@echo "🎯 TRAINING & TESTING:"
 	@echo "  make offline           # Train offline (inside stream-producer container)"
 	@echo "  make offline-local     # Train offline on host (requires Java 17 set up)"
 	@echo "  make restart-app       # Restart FastAPI app (reload model)"
 	@echo "  make api-test USER_ID=1 K=10  # Call API"
+	@echo "  make show-artifacts    # List model artifacts after training"
+	@echo ""
+	@echo "🔧 OPERATIONS:"
 	@echo "  make scale-consumer N=3       # Scale out consumer group"
 	@echo "  make kill-broker X=2 | start-broker X=2"
 	@echo "  make logs-app | logs-consumer | logs-producer"
-	@echo "  make kraft-down        # Down & remove volumes"
-	@echo "  make show-artifacts    # List model artifacts after training"
 
 # Bring up 3-broker KRaft cluster + app + producer/consumer + redis + schema-registry + kafka-ui
 kraft-up:
@@ -96,3 +114,55 @@ api-test:
 
 show-artifacts:
 	$(DC) exec stream-producer bash -lc 'ls -lh artifacts/model_trainer || true && ls -lh artifacts/data_transformation/lake || true'
+
+# ===== DEMO COMMANDS =====
+demo:
+	@echo "🎬 Starting Docker-based Real-time Movie Recommender Demo"
+	@echo "🚀 This will start the full Docker stack with demo features"
+	@echo ""
+	./scripts/quick_demo.sh
+
+demo-quick:
+	@echo "� Quick demo start (assumes stack is running)"
+	@echo "🌐 Demo UI: http://localhost:8000/"
+	$(DC) up -d --profile demo
+
+demo-click:
+	@echo "📱 Generating single click event via Docker..."
+	@if [ -z "$(USER_ID)" ]; then echo "Usage: make demo-click USER_ID=1 GENRE=Action"; exit 1; fi
+	@if [ -z "$(GENRE)" ]; then echo "Usage: make demo-click USER_ID=1 GENRE=Action"; exit 1; fi
+	$(DC) exec stream-producer python scripts/click_generator.py --mode single --user-id $(USER_ID) --genre $(GENRE)
+
+demo-session:
+	@echo "🎯 Simulating user session via Docker..."
+	@if [ -z "$(USER_ID)" ]; then echo "Usage: make demo-session USER_ID=1 GENRE=Comedy CLICKS=10"; exit 1; fi
+	@if [ -z "$(GENRE)" ]; then echo "Usage: make demo-session USER_ID=1 GENRE=Comedy CLICKS=10"; exit 1; fi
+	$(DC) exec stream-producer python scripts/click_generator.py --mode session --user-id $(USER_ID) --genre $(GENRE) --clicks $(if $(CLICKS),$(CLICKS),5)
+
+demo-stream:
+	@echo "🌊 Starting continuous event stream via Docker..."
+	$(DC) exec stream-producer python scripts/click_generator.py --mode stream --duration $(if $(DURATION),$(DURATION),60) --users 1 2 3 4 5
+
+demo-api-test:
+	@echo "🧪 Testing API endpoints..."
+	@echo "Health check:"
+	curl -s http://localhost:8000/health | python -m json.tool || echo "API not ready"
+	@echo "\nOffline recommendations:"
+	curl -s "http://localhost:8000/recommend-offline?user_id=1&k=5" | python -m json.tool || echo "API not ready"
+	@echo "\nRealtime recommendations:"
+	curl -s "http://localhost:8000/realtime-only?user_id=1&k=5" | python -m json.tool || echo "API not ready" 
+	@echo "\nBlended recommendations:"
+	curl -s "http://localhost:8000/recommend?user_id=1&k=5" | python -m json.tool || echo "API not ready"
+
+demo-logs:
+	@echo "📱 Following demo logs..."
+	$(DC) logs -f app
+
+demo-status:
+	@echo "📊 Demo stack status:"
+	$(DC) ps
+	@echo ""
+	@echo "🌐 Demo URLs:"
+	@echo "  - Demo UI: http://localhost:8000/"
+	@echo "  - Kafka UI: http://localhost:8080/"
+	@echo "  - API Health: http://localhost:8000/health"

@@ -114,7 +114,7 @@ services:
       - ..:/app
     ports:
       - "8000:8000"
-    command: bash -lc "uvicorn app:app --host 0.0.0.0 --port 8000"
+    command: bash -lc "uvicorn app:app --host 0.0.0.0 --port 8000 --reload"
 
   stream-consumer:
     build:
@@ -131,6 +131,24 @@ services:
       - ..:/app
     command: python scripts/consumer_entry.py
     restart: unless-stopped
+
+  # Demo click generator service
+  demo-producer:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile
+    depends_on:
+      - broker-1
+      - broker-2
+      - broker-3
+      - redis
+    environment:
+      APP_CONFIG: "config/config.docker.kraft.yaml"
+    volumes:
+      - ..:/app
+    command: bash -c "sleep 30 && python scripts/click_generator.py --mode stream --duration 3600 --users 1 2 3 4 5"
+    restart: unless-stopped
+    profiles: ["demo"]  # Only start with --profile demo
 
   stream-producer:
     build:

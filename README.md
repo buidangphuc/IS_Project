@@ -1,13 +1,82 @@
-# Realtime Recommender (Lambda-friendly) — Kafka KRaft + Redis + FastAPI
+# 🎬 Realtime Movie Recommender (Lambda Architecture)
 
-Big Data / Distributed demo stack featuring:
-- **Kafka KRaft 3 brokers** (replication, leader election)
-- **Redis** (speed cache: session & trending)
-- **FastAPI** (serving layer)
-- **Producer/Consumer** (Python)
-- **Kafka UI** (observe topics, partitions, consumer groups)
+**Big Data vibes with Real-time Demo!** 🚀
 
-> **Offline training**
+Recommendation system with Lambda Architecture featuring:
+- **🎯 Interactive Demo UI** - Real-time visualization
+- **⚡ WebSocket Streaming** - Live updates every second  
+- **🔥 Click Generator** - Simulate user behavior
+- **📊 3-Panel Dashboard** - Offline vs Realtime vs Blended
+- **🏗️ Kafka KRaft 3 brokers** (replication, leader election)
+- **💾 Redis** (speed layer: session & trending)
+- **🌐 FastAPI** (serving layer with WebSocket)
+- **📡 Producer/Consumer** (Python streaming)
+- **🎛️ Kafka UI** (observe topics, partitions, consumer groups)
+
+## 🚀 Quick Demo Start
+
+```bash
+# Start full demo stack (Docker-based)
+make demo
+```
+
+Or step by step:
+
+```bash
+# 1. Start infrastructure 
+make kraft-up
+
+# 2. Train model (if not exists)
+make offline  
+
+# 3. Open browser: http://localhost:8000/
+```
+
+## 🎮 Demo Features
+
+### 1. **Real-time Dashboard**
+- **Offline Panel**: ALS Matrix Factorization recommendations
+- **Realtime Panel**: Kafka + Redis trending by genre
+- **Blended Panel**: Lambda architecture final output
+
+### 2. **WebSocket Live Updates** 
+- Streaming data updates every second
+- Real-time event log with timestamps
+- Live statistics (events processed, weights, etc.)
+
+### 3. **Interactive Click Generator**
+- **Single Click**: Generate one event for specific genre
+- **User Session**: Simulate focused user behavior  
+- **Auto Mode**: Continuous event stream
+- **Manual Controls**: Pick user ID, genre preferences
+
+## 🎯 Demo Usage
+
+```bash
+# Generate single click event (via Docker)
+make demo-click USER_ID=1 GENRE=Action
+
+# Simulate user session (multiple clicks with genre preference)  
+make demo-session USER_ID=1 GENRE=Comedy CLICKS=10
+
+# Continuous event stream (multiple users)
+make demo-stream DURATION=60
+
+# Test all API endpoints
+make demo-api-test
+
+# Check demo status
+make demo-status
+
+# Follow demo logs
+make demo-logs
+```
+
+### 🌐 Demo URLs
+- **Main Demo**: http://localhost:8000/
+- **API Health**: http://localhost:8000/health  
+- **WebSocket**: ws://localhost:8000/ws
+- **Kafka UI**: http://localhost:8080 (if running full stack)
 
 ---
 
