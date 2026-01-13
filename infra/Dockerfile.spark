@@ -1,0 +1,15 @@
+# Custom Spark image with numpy pre-installed
+FROM apache/spark:3.5.0
+
+USER root
+
+# Install numpy
+# Install numpy and redis
+RUN pip install --no-cache-dir numpy redis
+
+# Download Spark S3 Dependencies (Hadoop AWS & AWS Java SDK)
+# Spark 3.5.0 uses Hadoop 3.3.4
+RUN wget https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-aws/3.3.4/hadoop-aws-3.3.4.jar -P /opt/spark/jars/ && \
+    wget https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-bundle/1.12.262/aws-java-sdk-bundle-1.12.262.jar -P /opt/spark/jars/
+
+USER spark
