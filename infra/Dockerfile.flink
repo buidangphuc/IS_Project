@@ -1,0 +1,25 @@
+FROM flink:1.18.1
+
+# Install Python 3 and Pip
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    python3-dev \
+    default-jdk-headless \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
+
+# Alias python to python3
+RUN ln -s /usr/bin/python3 /usr/bin/python
+
+# Set JAVA_HOME to the installed JDK
+ENV JAVA_HOME=/usr/lib/jvm/default-java
+
+# Install Python Dependencies from requirements-flink.txt
+COPY requirements-flink.txt /opt/flink/requirements.txt
+RUN pip3 install --no-cache-dir -r /opt/flink/requirements.txt
+
+# Download Flink Kafka Connector
+RUN wget -P /opt/flink/lib/ https://repo.maven.apache.org/maven2/org/apache/flink/flink-sql-connector-kafka/3.1.0-1.18/flink-sql-connector-kafka-3.1.0-1.18.jar
+
+WORKDIR /app
